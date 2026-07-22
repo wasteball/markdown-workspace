@@ -1,0 +1,15 @@
+{
+  "apiUrl": "https://your-domain.example/api/upload",
+  "fileField": "file",
+  "responseUrlPath": "data.url",
+  "bucket": "",
+  "bucketField": "bucket",
+  "userCode": "",
+  "userField": "userCode",
+  "headers": {},
+  "extraFields": {},
+  "fileLibraryUrl": "",
+  "shareFormat": "name_url",
+  "autoCopy": true,
+  "withCredentials": false
+}

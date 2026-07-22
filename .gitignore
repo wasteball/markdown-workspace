@@ -1,0 +1,10 @@
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.bak
+*.tmp
+*.local.*
+*.private.*
+*内部*
+share-service.private.json

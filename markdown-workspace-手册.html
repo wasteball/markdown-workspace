@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown Workspace · 一个文件，读改存 Markdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+KuaiLe&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   配色的一条硬规矩：红 / 绿 / 琥珀 / 蓝 是产品的语义色 ——
+   红＝删掉的、绿＝新增的、琥珀＝改过的、蓝＝别处改的。品牌色不许占用它们。
+   所以全篇是纸和墨，主色取界面里那个绿压深成墨绿；彩色只在「改动标记」
+   那一节放开 —— 全篇唯一的彩色高潮，恰好是这个工具最独特的能力。
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --cream:#FAF5E8; --cream-deep:#F2EAD3; --paper:#FFFDF7;
+  --ink:#1B1A2E; --ink-soft:#3A3854; --muted:#7A7686; --line:rgba(27,26,46,0.12);
+  --forest:#1C7C54; --forest-deep:#125C3D; --leaf:#22c55e; --sun:#FFC93C;
+  /* 产品语义色 —— 只在讲改动标记时出场 */
+  --c-add:#0EA472; --c-mod:#D98A0B; --c-del:#E04A44; --c-ext:#3B82F6;
+}
+*{margin:0; padding:0; box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Noto Sans SC', system-ui, sans-serif; background:var(--cream); color:var(--ink);
+  line-height:1.6; overflow-x:hidden;
+  background-image:
+    radial-gradient(circle at 18% 8%, rgba(28,124,84,0.05) 0, transparent 42%),
+    radial-gradient(circle at 82% 62%, rgba(255,201,60,0.07) 0, transparent 42%);
+}
+.noise{position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");}
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px; position:relative; z-index:2;}
+section, .band{position:relative; z-index:2;}
+
+/* ─── 顶栏 ─── */
+.topbar{position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:14px;
+  padding:12px 24px; background:rgba(250,245,232,.86); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);}
+.topbar .logo{font-family:'Noto Serif SC',serif; font-weight:900; font-size:17px; letter-spacing:-.5px;}
+.topbar .logo i{color:var(--forest); font-style:normal;}
+.topbar nav{margin-left:auto; display:flex; gap:2px;}
+.topbar nav a{color:var(--muted); text-decoration:none; font-size:13px; padding:6px 10px; border-radius:8px;}
+.topbar nav a:hover{color:var(--forest); background:rgba(28,124,84,.08);}
+.topbtn{background:var(--forest); color:#fff; text-decoration:none; font-size:13px; font-weight:700;
+  padding:8px 16px; border-radius:999px; white-space:nowrap; border:2px solid var(--ink); box-shadow:3px 3px 0 var(--ink);}
+.topbtn:hover{background:var(--forest-deep);}
+
+/* ─── HERO ─── */
+.hero{padding:78px 0 60px; position:relative;}
+.deco{position:absolute; font-family:'Caveat',cursive; color:var(--forest); font-size:30px; font-weight:700;}
+.deco-1{top:52px; right:20px; transform:rotate(8deg);}
+.deco-2{bottom:96px; left:-8px; transform:rotate(-6deg); color:var(--c-mod); font-size:24px;}
+.hero-tag{display:inline-block; background:var(--ink); color:var(--cream); padding:6px 16px; border-radius:999px;
+  font-size:11.5px; letter-spacing:2px; font-family:'JetBrains Mono',monospace; margin-bottom:26px;}
+h1{font-family:'Noto Serif SC',serif; font-weight:900; font-size:clamp(34px,5.6vw,60px); line-height:1.24; letter-spacing:-1px; margin-bottom:24px;}
+.strike{color:var(--ink-soft); position:relative; white-space:nowrap;}
+.strike::after{content:''; position:absolute; left:-2%; right:-2%; top:56%; height:5px; background:var(--c-del); transform:rotate(-1.6deg); border-radius:3px;}
+.glow{color:var(--forest-deep); position:relative; display:inline-block; white-space:nowrap;}
+.glow::after{content:''; position:absolute; left:-3px; right:-3px; bottom:4px; height:38%; background:var(--sun); opacity:.55; z-index:-1; border-radius:2px;}
+.hero-sub{font-size:17px; color:var(--ink-soft); max-width:660px; margin-bottom:34px; line-height:1.85;}
+.hero-sub strong{color:var(--ink); font-weight:700; border-bottom:2px solid var(--sun);}
+
+/* CTA ＝ 产品本身。它就是一个文件，那就把这个文件画出来。 */
+.filecta{display:flex; align-items:center; gap:22px; flex-wrap:wrap;}
+.filecard{display:flex; align-items:center; gap:16px; background:var(--paper); border:2px solid var(--ink);
+  border-radius:10px; padding:16px 22px 16px 18px; box-shadow:7px 7px 0 var(--forest); transition:transform .2s, box-shadow .2s;}
+.filecard:hover{transform:translate(-2px,-2px); box-shadow:9px 9px 0 var(--forest);}
+.fileicon{width:44px; height:54px; flex:none; background:#fff; border:2px solid var(--ink); border-radius:4px; position:relative;
+  box-shadow:2px 2px 0 rgba(27,26,46,.15);}
+.fileicon::before{content:''; position:absolute; top:-2px; right:-2px; border-width:0 0 13px 13px; border-style:solid;
+  border-color:transparent transparent var(--cream-deep) transparent; transform:rotate(0deg);}
+.fileicon::after{content:'</>'; position:absolute; inset:auto 0 7px 0; text-align:center; font-family:'JetBrains Mono',monospace;
+  font-size:11px; font-weight:700; color:var(--forest);}
+.fileicon .lines{position:absolute; left:6px; right:12px; top:12px; height:2px; background:var(--line); box-shadow:0 6px 0 var(--line), 0 12px 0 var(--line);}
+.filemeta .fname{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; margin-bottom:3px;}
+.filemeta .fsize{font-size:12px; color:var(--muted);}
+.ctahint{font-family:'ZCOOL KuaiLe',cursive; font-size:19px; color:var(--ink); line-height:1.5;}
+.ctahint b{color:var(--forest-deep); border-bottom:3px solid var(--sun);}
+.hero-meta{margin-top:30px; font-size:13px; color:var(--muted); line-height:2;}
+.hero-meta code{font-family:'JetBrains Mono',monospace; background:var(--cream-deep); padding:2px 7px; border-radius:4px; color:var(--ink-soft); font-size:12px;}
+
+/* ─── 通用分节 ─── */
+.section-label{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--forest); letter-spacing:3px; margin-bottom:14px;}
+.section-title{font-family:'Noto Serif SC',serif; font-weight:900; font-size:clamp(26px,3.6vw,38px); line-height:1.35; margin-bottom:14px; letter-spacing:-.5px;}
+.section-title em{font-style:normal; color:var(--forest-deep); position:relative; display:inline-block;}
+.section-title em::after{content:''; position:absolute; left:0; right:0; bottom:2px; height:34%; background:var(--sun); opacity:.5; z-index:-1;}
+.section-desc{color:var(--ink-soft); font-size:15.5px; max-width:680px; margin-bottom:40px; line-height:1.85;}
+section{padding:76px 0;}
+
+/* ─── 痛点剧场 ─── */
+.pain-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:22px;}
+.pain-card{background:var(--paper); padding:30px 24px; border:2px solid var(--ink); border-radius:6px;
+  box-shadow:6px 6px 0 var(--ink); transition:transform .25s;}
+.pain-card:hover{transform:translate(-3px,-3px); box-shadow:9px 9px 0 var(--ink);}
+.pain-emoji{font-size:32px; margin-bottom:12px;}
+.pain-quote{font-size:14.5px; line-height:1.75; color:var(--ink-soft); margin-bottom:16px;}
+.pain-tag{display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--cream-deep);
+  border:1px solid var(--line); padding:3px 9px; border-radius:999px; color:var(--ink);}
+.pain-arrow{text-align:center; margin-top:44px; font-family:'ZCOOL KuaiLe',cursive; font-size:19px; color:var(--ink-soft);}
+.pain-arrow .down{display:block; font-size:28px; color:var(--forest); animation:bob 1.6s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0)} 50%{transform:translateY(7px)}}
+
+/* ─── 三步闭环 ─── */
+.band{background:var(--ink); color:var(--cream); padding:76px 0;}
+.band .section-label{color:var(--sun);}
+.band .section-title{color:var(--cream);}
+.band .section-title em{color:var(--sun);}
+.band .section-title em::after{display:none;}
+.band .section-desc{color:rgba(250,245,232,.72);}
+.steps{display:flex; align-items:stretch; gap:14px; flex-wrap:wrap;}
+.step{flex:1; min-width:210px; background:rgba(250,245,232,.06); border:1.5px solid rgba(250,245,232,.22); border-radius:10px; padding:26px 22px;}
+.step-num{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sun); letter-spacing:2px; margin-bottom:10px;}
+.step-title{font-family:'ZCOOL KuaiLe',cursive; font-size:23px; margin-bottom:10px;}
+.step-desc{font-size:13.5px; line-height:1.8; color:rgba(250,245,232,.76);}
+.step-desc code{font-family:'JetBrains Mono',monospace; background:rgba(255,201,60,.16); color:var(--sun); padding:1px 6px; border-radius:4px; font-size:12px;}
+.step-connector{display:flex; align-items:center; color:var(--sun); font-size:22px;}
+
+/* ─── 动图演示 ─── */
+.demo-frame{background:var(--paper); border:2px solid var(--ink); border-radius:12px; padding:10px;
+  box-shadow:12px 12px 0 var(--forest); max-width:1000px; margin:0 auto;}
+.demo-frame img{width:100%; display:block; border-radius:6px;}
+.demo-caption{text-align:center; margin-top:26px; font-family:'ZCOOL KuaiLe',cursive; font-size:17px; color:var(--ink-soft);}
+.demo-caption span{color:var(--forest-deep); border-bottom:2px solid var(--sun);}
+
+/* ═══ 改动标记：全篇唯一的彩色高潮 ═══ */
+.star{background:linear-gradient(180deg, var(--cream) 0%, var(--cream-deep) 100%); border-top:2px solid var(--ink); border-bottom:2px solid var(--ink);}
+.legend{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:32px;}
+.lg{display:inline-flex; align-items:center; gap:8px; background:var(--paper); border:1.5px solid var(--ink);
+  border-radius:999px; padding:5px 14px 5px 8px; font-size:12.5px; box-shadow:3px 3px 0 var(--ink);}
+.lg i{width:4px; height:15px; border-radius:2px; flex:none;}
+.lg.add i{background:var(--c-add);} .lg.mod i{background:var(--c-mod);}
+.lg.del i{background:var(--c-del);} .lg.ext i{background:var(--c-ext);}
+/* 活的示例：点色条就展开，跟工具里同一个交互 */
+.live{background:var(--paper); border:2px solid var(--ink); border-radius:12px; overflow:hidden; box-shadow:8px 8px 0 var(--c-mod); max-width:860px;}
+.live-head{display:flex; align-items:center; gap:9px; padding:10px 16px; background:var(--cream-deep); border-bottom:2px solid var(--ink);
+  font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--ink-soft);}
+.live-head .d{width:8px; height:8px; border-radius:50%; background:var(--c-mod);}
+.live-head .k{margin-left:auto;}
+.live-body{padding:26px 30px 24px; font-family:'Newsreader',Georgia,serif; font-size:17.5px; line-height:1.8;}
+.blk{position:relative; border-radius:6px; margin-bottom:1em;}
+.blk:last-of-type{margin-bottom:0;}
+.blk[data-chg]{cursor:pointer;}
+.blk[data-chg=mod]{--c:var(--c-mod);} .blk[data-chg=add]{--c:var(--c-add);}
+.blk[data-chg]::before{content:''; position:absolute; left:-17px; top:1px; bottom:1px; width:4px; border-radius:3px; background:var(--c); transition:transform .15s;}
+.blk[data-chg]:hover::before{transform:scaleX(1.7);}
+.blk[data-chg]:hover{background:color-mix(in srgb,var(--c) 8%, transparent);}
+.card{display:none; margin:0 0 12px; border:1.5px solid var(--line); border-left:4px solid var(--c,var(--c-mod)); border-radius:8px; overflow:hidden;
+  font-family:'Noto Sans SC',sans-serif; background:var(--cream);}
+.card{--c:var(--c-mod);} .card.add{--c:var(--c-add);}
+.card.on{display:block; animation:drop .2s ease;}
+@keyframes drop{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
+.card-head{display:flex; align-items:center; gap:9px; padding:7px 12px; background:color-mix(in srgb,var(--c) 11%, transparent); border-bottom:1px solid var(--line);}
+.tag{font-size:10.5px; font-weight:700; letter-spacing:.5px; padding:2px 8px; border-radius:5px; background:color-mix(in srgb,var(--c) 24%, transparent); color:var(--c);}
+.card-what{font-size:11.5px; color:var(--muted);}
+.ghost{padding:11px 14px; font-family:'Newsreader',Georgia,serif; font-size:16.5px; opacity:.72; background:color-mix(in srgb,var(--c-del) 5%, transparent);}
+.ghost p{text-decoration:line-through; text-decoration-color:rgba(224,74,68,.5);}
+.detail{padding:9px 14px; border-top:1px dashed var(--line); background:var(--cream-deep);
+  font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.85; color:var(--ink-soft);}
+.detail del{background:rgba(224,74,68,.2); color:var(--ink); text-decoration:line-through; text-decoration-color:rgba(224,74,68,.75); border-radius:3px; padding:0 2px;}
+.detail ins{background:rgba(14,164,114,.22); color:var(--ink); text-decoration:none; border-radius:3px; padding:0 2px;}
+.acts{display:flex; align-items:center; gap:6px; padding:7px 10px; background:var(--cream-deep); border-top:1px solid var(--line);}
+.acts .revert{margin-right:auto; border-color:rgba(224,74,68,.5); color:var(--c-del);}
+.acts button{border:1px solid var(--line); background:var(--paper); color:var(--muted); font-family:inherit; font-size:11.5px;
+  border-radius:6px; padding:3px 10px; cursor:pointer;}
+.acts button:hover{border-color:var(--forest); color:var(--forest);}
+.live-hint{font-family:'Caveat',cursive; font-size:21px; color:var(--forest-deep); margin-top:16px; transform:rotate(-1deg);}
+.chg-more{display:grid; grid-template-columns:repeat(auto-fit,minmax(248px,1fr)); gap:18px; margin-top:44px;}
+.cm{background:var(--paper); border:2px solid var(--ink); border-radius:8px; padding:20px 20px 22px; box-shadow:5px 5px 0 var(--ink);}
+.cm h4{font-size:15px; margin-bottom:8px; display:flex; align-items:center; gap:8px;}
+.cm h4 i{width:4px; height:16px; border-radius:2px; flex:none;}
+.cm p{font-size:13.5px; line-height:1.8; color:var(--ink-soft);}
+.cm code{font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--cream-deep); padding:1px 5px; border-radius:4px;}
+
+/* ─── 场景 ─── */
+.scene{display:grid; grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr); gap:40px; align-items:start;
+  padding:38px 0; border-top:1.5px dashed var(--line);}
+.scene:first-of-type{border-top:none;}
+.scene-number{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--forest); letter-spacing:2px; margin-bottom:12px;}
+.scene-context{font-family:'Caveat',cursive; font-size:22px; color:var(--ink-soft); line-height:1.5; margin-bottom:14px;}
+.scene-title{font-family:'Noto Serif SC',serif; font-weight:700; font-size:22px; line-height:1.5;}
+.scene-title .hl{background:var(--sun); padding:0 5px; border-radius:3px;}
+.scene-list{display:flex; flex-direction:column; gap:11px;}
+.si{display:flex; gap:11px; font-size:14.5px; line-height:1.7;}
+.si::before{content:''; flex:none; width:3px; border-radius:2px; background:var(--forest); margin:4px 0;}
+.si b{font-weight:700;}
+.si code{font-family:'JetBrains Mono',monospace; font-size:12.5px; background:var(--cream-deep); padding:1px 6px; border-radius:4px;}
+
+/* ─── 速查 ─── */
+.keys{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:0 30px;}
+.krow{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px dashed var(--line);}
+kbd{font-family:'JetBrains Mono',monospace; font-size:11.5px; background:var(--paper); border:1.5px solid var(--ink);
+  border-bottom-width:3px; border-radius:6px; padding:3px 8px; white-space:nowrap;}
+.krow span{font-size:13.5px; color:var(--ink-soft); margin-left:auto; text-align:right;}
+
+/* ─── 边界 ─── */
+.limits{border:2px solid var(--ink); border-radius:10px; overflow:hidden; background:var(--paper); box-shadow:7px 7px 0 var(--ink);}
+.lim{display:grid; grid-template-columns:minmax(112px,158px) 1fr; gap:18px; padding:16px 20px; border-bottom:1.5px dashed var(--line); font-size:14.5px;}
+.lim:last-child{border-bottom:none;}
+.lim b{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--forest); padding-top:2px;}
+.lim p{line-height:1.75; color:var(--ink-soft);}
+.lim code{font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--cream-deep); padding:1px 5px; border-radius:4px;}
+
+/* ─── 结尾 ─── */
+.end{background:var(--ink); color:var(--cream); padding:88px 0 76px; text-align:center;}
+.end-title{font-family:'Noto Serif SC',serif; font-weight:900; font-size:clamp(28px,4.4vw,44px); line-height:1.4; margin-bottom:18px;}
+.end-title em{font-style:normal; color:var(--sun);}
+.end-sub{color:rgba(250,245,232,.7); font-size:15px; margin-bottom:36px; line-height:1.8;}
+.end .filecard{display:inline-flex; box-shadow:7px 7px 0 var(--sun); border-color:var(--cream);}
+.end .filecard .filemeta .fsize{color:var(--muted);}
+footer{padding:26px 0 40px; text-align:center; font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+a{color:var(--forest-deep);}
+:focus-visible{outline:3px solid var(--forest); outline-offset:3px; border-radius:4px;}
+@media (max-width:820px){
+  .scene{grid-template-columns:1fr; gap:18px;}
+  .step-connector{display:none;}
+  .deco{display:none;}
+  .lim{grid-template-columns:1fr; gap:5px;}
+  .live-body{padding-left:34px;}
+  .krow span{margin-left:0;}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important} html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<div class="topbar">
+  <div class="logo">Markdown Workspace</div>
+  <nav>
+    <a href="#pain">痛点</a>
+    <a href="#loop">三步</a>
+    <a href="#demo">演示</a>
+    <a href="#chg">改动标记</a>
+    <a href="#scenes">场景</a>
+    <a href="#keys">速查</a>
+  </nav>
+  <a class="topbtn" href="#get">怎么拿到它 →</a>
+</div>
+
+<!-- ════ HERO ════ -->
+<header class="hero">
+  <div class="wrap">
+    <div class="deco deco-1">双击就开!</div>
+    <span class="hero-tag">FOR · 任何要读 / 改 Markdown 的人</span>
+    <h1>
+      不用装,不用登录,<br>
+      <span class="strike">不用先建个库</span>。<br>
+      它就是 <span class="glow">一个 HTML 文件</span>。
+    </h1>
+    <p class="hero-sub">
+      双击打开,把 <code>.md</code> 拖进去就能读——排版、表格、图表、公式全都在。
+      点字直接改,<code>⌘S</code> 写回你磁盘上那个原文件。<strong>文件不出这台电脑。</strong>
+    </p>
+    <div class="filecta">
+      <div class="filecard">
+        <div class="fileicon"><div class="lines"></div></div>
+        <div class="filemeta">
+          <div class="fname">Markdown Workspace.html</div>
+          <div class="fsize">单文件 · 约 300 KB · 无需安装</div>
+        </div>
+      </div>
+      <div class="ctahint">存到桌面<br><b>双击,就是全部</b></div>
+    </div>
+    <div class="hero-meta">
+      没有服务器,没有账号,没有配置文件。<code>Chrome</code> / <code>Edge</code> 里体验最完整。<br>
+      想给同事?把这一个文件发过去就行。
+    </div>
+  </div>
+</header>
+
+<!-- ════ 痛点剧场 ════ -->
+<section id="pain">
+  <div class="wrap">
+    <div class="section-label">[ 场景回放 ]</div>
+    <h2 class="section-title">这些时刻,你应该<em>见过</em></h2>
+
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-emoji">🫠</div>
+        <div class="pain-quote">"AI 吐了一份 .md 报告给我,记事本打开全是 <code>##</code> 和 <code>**</code>,表格是一堆竖线,根本没法读。"</div>
+        <span class="pain-tag">没法直视</span>
+      </div>
+      <div class="pain-card">
+        <div class="pain-emoji">😮‍💨</div>
+        <div class="pain-quote">"我就想改几个错字,结果得先装个编辑器、建个库、学一套它的规矩。"</div>
+        <span class="pain-tag">为改字先学工具</span>
+      </div>
+      <div class="pain-card">
+        <div class="pain-emoji">🫣</div>
+        <div class="pain-quote">"这份东西里有客户数据,我可不敢往哪个在线编辑器上一传。"</div>
+        <span class="pain-tag">不敢往线上传</span>
+      </div>
+      <div class="pain-card">
+        <div class="pain-emoji">😵‍💫</div>
+        <div class="pain-quote">"改了半小时,要保存了——我到底动过哪几处来着?"</div>
+        <span class="pain-tag">存之前心里没底</span>
+      </div>
+    </div>
+
+    <div class="pain-arrow">
+      如果你点头超过一次
+      <span class="down">↓</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 三步闭环 ════ -->
+<div class="band" id="loop">
+  <div class="wrap">
+    <div class="section-label">[ 核心闭环 ]</div>
+    <h2 class="section-title">从今天起,只有<em>三步</em></h2>
+    <p class="section-desc">没有第二个视图,没有左右分栏,没有源码窗。你看到的就是这篇文档排好版的样子——点哪儿,改哪儿。</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">STEP 01</div>
+        <div class="step-title">拖进来</div>
+        <div class="step-desc">把 <code>.md</code> 拖到窗口里,或者点 <code>Open</code> 选文件。<br>一次要带一堆?直接拖<b>整个文件夹</b>。</div>
+      </div>
+      <div class="step-connector">→</div>
+      <div class="step">
+        <div class="step-num">STEP 02</div>
+        <div class="step-title">点字就改</div>
+        <div class="step-desc">按 <code>Edit</code>,点一下段落,字还是那些字,直接改。<br>看不见星号,选中文字就浮出格式条。</div>
+      </div>
+      <div class="step-connector">→</div>
+      <div class="step">
+        <div class="step-num">STEP 03</div>
+        <div class="step-title">存回原文件</div>
+        <div class="step-desc"><code>⌘S</code> 直接写回你磁盘上那个 <code>.md</code>——<br>不是又给你下载一个新文件。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 动图演示 ════ -->
+<section id="demo">
+  <div class="wrap">
+    <div class="section-label">[ 实际操作 ]</div>
+    <h2 class="section-title" style="text-align:center;">大概就是<em>这种感觉</em></h2>
+    <p class="section-desc" style="margin:0 auto 40px; text-align:center;">从打开一份 AI 生成的长报告,到读、改、存的真实过程。</p>
+
+    <div class="demo-frame">
+      <img src="https://anapi.annto.com/api-oss/oss/file/hashDownload/1784723976530_65f02d87-85ca-11f1-beed-54c6ff1a61eb.gif" alt="Markdown Workspace 实际操作演示" loading="lazy">
+    </div>
+    <div class="demo-caption">
+      全程没装任何东西,<span>就一个文件</span> ✨
+    </div>
+  </div>
+</section>
+
+<!-- ════ 改动标记：彩色高潮 ════ -->
+<section class="star" id="chg">
+  <div class="wrap">
+    <div class="section-label">[ 独门功夫 ]</div>
+    <h2 class="section-title">保存前,你<em>知道自己改了什么</em></h2>
+    <p class="section-desc">别的 Markdown 工具让你改完直接存,改了哪儿全靠脑子记。Markdown Workspace 给每一处改动留个记号——正文该干净还是干净,你想看的时候才展开。</p>
+
+    <div class="legend">
+      <span class="lg mod"><i></i>琥珀 · 这块改过</span>
+      <span class="lg add"><i></i>绿 · 新增的</span>
+      <span class="lg del"><i></i>红 · 这里原来有东西</span>
+      <span class="lg ext"><i></i>蓝 · 你不在时别处改的</span>
+    </div>
+
+    <div class="live">
+      <div class="live-head"><span class="d"></span>示例文档 · 2 处还没保存的改动<span class="k">Alt+↓ 下一处</span></div>
+      <div class="live-body">
+        <p class="blk">水锤是压力管道里最常见的破坏源。管道越长、流速越高,阀门关闭时的压力峰值就越危险。</p>
+
+        <div class="card" id="c1">
+          <div class="card-head"><span class="tag">原来</span><span class="card-what">这块被改过 · 下面那块是现在的样子</span></div>
+          <div class="ghost"><p>常见的防护方式是设置调压塔,但它对场地高度有要求。</p></div>
+          <div class="detail">常见的防护方式是<del>设置调压塔,但它对</del><ins>加装气囊空气罐,不受</ins>场地高度<del>有要求</del><ins>限制</ins>。</div>
+          <div class="acts"><button class="revert">撤回这处</button><button>↑</button><button>↓</button><button data-close>收起</button></div>
+        </div>
+        <p class="blk" data-chg="mod" data-card="c1">常见的防护方式是加装气囊空气罐,不受场地高度限制。</p>
+
+        <div class="card add" id="c2">
+          <div class="card-head"><span class="tag">新增</span><span class="card-what">原来没有这一块,下面那块是新加的</span></div>
+          <div class="acts"><button class="revert">撤回这处</button><button>↑</button><button>↓</button><button data-close>收起</button></div>
+        </div>
+        <p class="blk" data-chg="add" data-card="c2">气囊在充气状态下预压,阀门关闭的瞬间由它先吸收压力峰值。</p>
+
+        <p class="blk">选型时按最大压力峰值反推容积,留 15% 余量。</p>
+      </div>
+    </div>
+    <div class="live-hint">↑ 这个是真的,点那两根色条试试 —— 跟工具里一模一样</div>
+
+    <div class="chg-more">
+      <div class="cm">
+        <h4><i style="background:var(--c-mod)"></i>「原来」是排版后的样子</h4>
+        <p>展开看到的不是一堆星号,是它<b>原本在文档里的模样</b>——图片、图表、表格都在,只是淡掉划掉。底下才附一行精确到词的差异。</p>
+      </div>
+      <div class="cm">
+        <h4><i style="background:var(--c-del)"></i>一处一处地撤</h4>
+        <p>某一处改得不对?点<b>撤回这处</b>,只退这一块,别的不动。反悔了还有 <code>⌘Z</code>。</p>
+      </div>
+      <div class="cm">
+        <h4><i style="background:var(--forest)"></i>逐处过一遍再存</h4>
+        <p><code>Alt+↓</code> 跳下一处,右下角 <code>↑ 2/5 ↓</code> 跟着走。确认完按 <code>⌘S</code>——<b>保存就是接受全部</b>。</p>
+      </div>
+      <div class="cm">
+        <h4><i style="background:var(--c-ext)"></i>你不在时,文件变了哪儿</h4>
+        <p>关了浏览器明天再开、或者你中途用别的编辑器改过同一个文件——<b>一打开就告诉你"上次看过之后,这儿被改了 5 处"</b>,蓝色标出来。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 场景 × 功能 ════ -->
+<section id="scenes">
+  <div class="wrap">
+    <div class="section-label">[ 场景 × 功能 ]</div>
+    <h2 class="section-title">四个场景,<em>够用了</em></h2>
+    <p class="section-desc">挑一个最像你的开始用,剩下的功能等你撞上了自然会发现。</p>
+
+    <div class="scene">
+      <div>
+        <div class="scene-number">SCENE / 01</div>
+        <div class="scene-context">"AI 给了我一份两万字的报告,先让我看看它到底写了啥。"</div>
+        <h3 class="scene-title">只是想<span class="hl">好好读一份</span> Markdown</h3>
+      </div>
+      <div class="scene-list">
+        <div class="si"><span><b>拖进来就排好版了。</b>标题、表格、代码、引用,该什么样是什么样。</span></div>
+        <div class="si"><span><b>左边自动生成大纲</b>,滚到哪一节它就高亮哪一节——两万字也不迷路。</span></div>
+        <div class="si"><span><b>Mermaid 图表直接画出来</b>,能缩放、能拖、能导出 PNG。公式用 KaTeX 渲染,代码自动高亮。</span></div>
+        <div class="si"><span>字号、行宽、衬线还是黑体、浅色深色——按 <code>Aa</code> 随手调。</span></div>
+      </div>
+    </div>
+
+    <div class="scene">
+      <div>
+        <div class="scene-number">SCENE / 02</div>
+        <div class="scene-context">"就三个错别字和一个数字,别让我为这个装个编辑器。"</div>
+        <h3 class="scene-title">想<span class="hl">顺手改几个字</span></h3>
+      </div>
+      <div class="scene-list">
+        <div class="si"><span>按 <code>Edit</code>,<b>点哪儿改哪儿</b>。不用切"编辑模式"进另一个窗口,就是你正在读的这一屏。</span></div>
+        <div class="si"><span><b>看不见星号。</b>选中文字浮出格式条:粗体、斜体、删除线、行内代码、链接。</span></div>
+        <div class="si"><span><b>表格有行列把手</b>,增删行列不用数竖线。任务列表的方框点了会真的改写 <code>- [ ]</code>。</span></div>
+        <div class="si"><span>改完 <code>⌘S</code> <b>写回原文件</b>。改错了 <code>⌘Z</code>,能退 200 步。</span></div>
+      </div>
+    </div>
+
+    <div class="scene">
+      <div>
+        <div class="scene-number">SCENE / 03</div>
+        <div class="scene-context">"改完了要发给老板,但他电脑上没有 Markdown 工具。"</div>
+        <h3 class="scene-title">要<span class="hl">发给不用 Markdown 的人</span></h3>
+      </div>
+      <div class="scene-list">
+        <div class="si"><span><b>Export</b> → 导出一个单文件 HTML,样式全带着,<b>对方双击就能看</b>,不用装任何东西。</span></div>
+        <div class="si"><span><b>Copy HTML</b> → 直接粘进邮件或公众号,排版不散。</span></div>
+        <div class="si"><span><b>Print / PDF</b> → 已经按打印排过版,不会出现半个表格跨页。</span></div>
+        <div class="si"><span><b>Share</b> → 上传后给一个链接。<b>这是唯一会把内容传出本机的动作,而且必须你自己点。</b></span></div>
+      </div>
+    </div>
+
+    <div class="scene">
+      <div>
+        <div class="scene-number">SCENE / 04</div>
+        <div class="scene-context">"一个项目十几个 .md,我不想开十几个窗口。"</div>
+        <h3 class="scene-title">要<span class="hl">一堆文件一起看</span></h3>
+      </div>
+      <div class="scene-list">
+        <div class="si"><span><b>直接拖整个文件夹</b>,左边侧栏按目录列出来,点一下就切。</span></div>
+        <div class="si"><span>哪个文件<b>有没存的改动,文件名旁边会亮个圆点</b>,一眼看见。</span></div>
+        <div class="si"><span>文档里引用的<b>本地图片会自动接上</b>,按相对路径找,不用你手动改。</span></div>
+        <div class="si"><span>也能<b>从 URL 直接读</b>,GitHub 的 blob 链接会自动转成 raw。</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 速查 ════ -->
+<section id="keys" style="padding-top:20px;">
+  <div class="wrap">
+    <div class="section-label">[ 熟练之后 ]</div>
+    <h2 class="section-title">手不用离开<em>键盘</em></h2>
+    <p class="section-desc">Mac 按 <code>⌘</code>,Windows 按 <code>Ctrl</code>,一样的。</p>
+    <div class="keys">
+      <div class="krow"><kbd>⌘ O</kbd><span>打开文件</span></div>
+      <div class="krow"><kbd>⌘ ⇧ O</kbd><span>打开文件夹</span></div>
+      <div class="krow"><kbd>⌘ S</kbd><span>保存 · 接受全部改动</span></div>
+      <div class="krow"><kbd>⌘ E</kbd><span>编辑开关</span></div>
+      <div class="krow"><kbd>⌘ ⇧ E</kbd><span>看整篇源码</span></div>
+      <div class="krow"><kbd>⌘ Z</kbd><span>撤销</span></div>
+      <div class="krow"><kbd>⌘ ⇧ Z</kbd><span>重做</span></div>
+      <div class="krow"><kbd>⌘ B</kbd><span>侧栏开关</span></div>
+      <div class="krow"><kbd>Alt ↓</kbd><span>下一处改动</span></div>
+      <div class="krow"><kbd>Alt ↑</kbd><span>上一处改动</span></div>
+      <div class="krow"><kbd>⌘ ⇧ D</kbd><span>改动清单</span></div>
+      <div class="krow"><kbd>Esc</kbd><span>关掉菜单 / 面板</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 边界 ════ -->
+<section id="limits">
+  <div class="wrap">
+    <div class="deco deco-2">这段是实话</div>
+    <div class="section-label">[ 丑话说前头 ]</div>
+    <h2 class="section-title">它<em>做不到什么</em></h2>
+    <p class="section-desc">先说清楚,省得你踩。</p>
+    <div class="limits">
+      <div class="lim"><b>首次要联网</b><p>排版引擎（Mermaid、公式、代码高亮这些）是从 CDN 拉的,第一次打开需要网络,之后浏览器缓存了能离线用一阵。<b>但你的文档内容始终不经过任何服务器</b>——读、渲染、保存全在本机。</p></div>
+      <div class="lim"><b>写回挑浏览器</b><p>静默写回原文件依赖 File System Access API,目前只有 <code>Chrome</code> / <code>Edge</code> 这类浏览器支持。Safari 和 Firefox 会退回"下载一份,你自己覆盖"。</p></div>
+      <div class="lim"><b>改动记录认路径</b><p>"你不在时文件变了哪儿"靠文件路径来记。两个不同文件夹里的同名文件会串在一起——浏览器不给绝对路径,这个绕不过去。</p></div>
+      <div class="lim"><b>超大文件只报"变过"</b><p>单篇超过 128KB（约 6 万字中文）时只存指纹,能告诉你它被改过,但定位不到具体改在哪儿——界面上会直说。</p></div>
+      <div class="lim"><b>整段重写时 diff 会碎</b><p>词级对比是字符级算法,整段推倒重写时它会去匹配零星的"的""。",看起来有点碎。Word 也这样,是这类算法的固有行为。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ 结尾 ════ -->
+<div class="end" id="get">
+  <div class="wrap">
+    <h2 class="end-title">下次再收到 <code>.md</code>,<br><em>别再用记事本硬看了</em></h2>
+    <p class="end-sub">没有安装包,没有注册页,没有"请先创建工作区"。<br>把这个文件存下来,双击——就是全部。</p>
+    <div class="filecard">
+      <div class="fileicon"><div class="lines"></div></div>
+      <div class="filemeta">
+        <div class="fname">Markdown Workspace.html</div>
+        <div class="fsize">存到桌面 · 双击打开 · 发给同事也是这一个文件</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Markdown Workspace · 用户手册</footer>
+
+<script>
+/* 手册里那段示例是真的会展开的 —— 跟工具里同一个交互:
+   点改动块 → 就地展开「原来」;再点 / 点收起 → 收回去。同一时刻只开一处。 */
+(function () {
+  function closeAll(){ document.querySelectorAll('.card.on').forEach(function(c){ c.classList.remove('on'); }); }
+  document.querySelectorAll('.blk[data-card]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var card = document.getElementById(b.dataset.card); if (!card) return;
+      var open = card.classList.contains('on');
+      closeAll(); if (!open) card.classList.add('on');
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(function (x) {
+    x.addEventListener('click', function (e) { e.stopPropagation(); closeAll(); });
+  });
+  document.querySelectorAll('.acts button:not([data-close])').forEach(function (x) {
+    x.addEventListener('click', function (e) { e.stopPropagation(); });
+  });
+})();
+</script>
+</body>
+</html>

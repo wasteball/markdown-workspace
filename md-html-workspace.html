@@ -641,6 +641,8 @@ body.empty #preview{display:none;}
 
 <!-- ======================= DOCUMENT (RENDERED) STYLES ======================= -->
 <style id="docStyles">
+/* Use a familiar ampersand without changing the typography of any other character. */
+@font-face{font-family:'MDW Ampersand';src:local('Arial'),local('Helvetica Neue'),local('Helvetica'),local('Liberation Sans'),local('DejaVu Sans');unicode-range:U+0026;}
 :root{
   --doc-bg:#ffffff; --doc-fg:#282b31; --doc-muted:#6b7280; --doc-border:#e6e8ec;
   --doc-link:#2b5fd0; --doc-accent:#c8891a;
@@ -649,8 +651,8 @@ body.empty #preview{display:none;}
   --doc-quote:#57606a; --doc-quote-bar:#d6dbe2; --doc-th:#f5f6f8;
   --doc-mark:#fff2a8; --doc-measure:860px;
   --mm-canvas:#f8fafc; --mm-canvas-edge:#d8e1ed;
-  --doc-font:'Newsreader',Georgia,'Times New Roman',serif;
-  --doc-head:'Space Grotesk',system-ui,-apple-system,sans-serif;
+  --doc-font:'MDW Ampersand','Newsreader',Georgia,'Times New Roman',serif;
+  --doc-head:'MDW Ampersand','Space Grotesk',system-ui,-apple-system,sans-serif;
   --doc-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
   --c-note:#3b82f6; --c-tip:#0ea472; --c-important:#8b5cf6; --c-warning:#e08e0b; --c-caution:#ef4444;
 }
@@ -1366,13 +1368,13 @@ body.empty #preview{display:none;}
     }
     return {
       startOnLoad:false, securityLevel:'strict', htmlLabels:false, theme:'base', themeVariables:v,
-      fontFamily:'Space Grotesk, system-ui, sans-serif',
+      fontFamily:'MDW Ampersand, Space Grotesk, system-ui, sans-serif',
       flowchart:{ htmlLabels:false, useMaxWidth:false, nodeSpacing:52, rankSpacing:58, padding:16, wrappingWidth:220, curve:'basis' },
       sequence:{ useMaxWidth:false, diagramMarginX:32, diagramMarginY:20, actorMargin:64, width:150, height:58,
         boxMargin:10, boxTextMargin:5, noteMargin:12, messageMargin:38, mirrorActors:true, wrap:true, wrapPadding:10,
-        actorFontSize:15, actorFontFamily:'Space Grotesk, system-ui, sans-serif', actorFontWeight:600,
-        noteFontSize:14, noteFontFamily:'Space Grotesk, system-ui, sans-serif',
-        messageFontSize:15, messageFontFamily:'Space Grotesk, system-ui, sans-serif' }
+        actorFontSize:15, actorFontFamily:'MDW Ampersand, Space Grotesk, system-ui, sans-serif', actorFontWeight:600,
+        noteFontSize:14, noteFontFamily:'MDW Ampersand, Space Grotesk, system-ui, sans-serif',
+        messageFontSize:15, messageFontFamily:'MDW Ampersand, Space Grotesk, system-ui, sans-serif' }
     };
   }
   function mmPaint(el, prop, value) { if (el) el.style.setProperty(prop, value, 'important'); }

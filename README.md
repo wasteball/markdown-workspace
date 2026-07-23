@@ -1,151 +1,63 @@
-# Markdown Workspace Tools
+# Markdown Workspace
 
-两个无需安装、无需构建的单文件 Markdown 工具。直接在浏览器中打开，即可完成 Markdown 阅读、编辑、查找替换、变更审阅和文档导出。
+AI 给了你一份 `.md` 文件，打开却满眼都是 `##`、`**` 和竖线？
 
-## 工具
+Markdown Workspace 可以把它变成一篇正常排版的文档。你不需要学习 Markdown，也不用在“源码”和“预览”之间来回切换。打开文件后，看到的就是最终排版；点击 `Edit`，就能像编辑飞书文档一样，直接点着正文修改。
 
-| 文件 | 主要用途 | 导出格式 |
-| --- | --- | --- |
-| `md-html-workspace.html` | Markdown 阅读、编辑与网页交付 | HTML、打印/PDF、Markdown |
-| `md-word-workspace.html` | Markdown 阅读、编辑与 Word 交付 | DOCX、打印/PDF、Markdown |
+**不需要安装软件，不需要注册账号。下载一个 HTML 文件，双击就能用。**
 
-两份 HTML 均为独立应用，没有后端依赖。分享功能是可选项，只有主动配置并点击分享后才会上传文档。
+## 直接开始
 
-## 主要功能
+根据你最后想要的文件，下载其中一个版本：
 
-- 打开单个或多个 Markdown 文件，也可以打开整个文件夹。
-- 从 URL 加载 Markdown，GitHub blob 地址会自动转换为 raw 地址。
-- 阅读界面直接编辑，支持块、表格行列、列表和常见行内格式。
-- 完整源码模式、撤销/重做、保存和未保存改动提示。
-- 查找与替换；选中文本后触发查找会自动带入选中内容。
-- 本次未保存改动与外部文件变动的可视化审阅。
-- GFM 表格、任务列表、脚注、缩写、目录、Callout、代码高亮、KaTeX 公式和 Mermaid 图表。
-- 深色/浅色/自动主题、强调色、字体、字号、阅读宽度和自定义 CSS。
-- HTML Workspace 导出独立 HTML，Word Workspace 导出可编辑 DOCX。
-- 通用 multipart 分享服务配置，支持请求头、附加表单字段、响应路径和浏览器记忆。
-
-## 快速开始
-
-### 直接打开
-
-下载任意一个 HTML 文件并双击打开。然后把 `examples/feature-demo.md` 拖进页面，即可查看主要渲染能力。
-
-### 使用本地 HTTP 服务
-
-推荐通过同一 Origin 打开两个工具，这样主题和分享服务配置可以自动复用。
-
-```bash
-python3 -m http.server 8000
-```
-
-Windows 也可以使用：
-
-```powershell
-py -m http.server 8000
-```
-
-浏览器访问：
-
-- `http://127.0.0.1:8000/md-html-workspace.html`
-- `http://127.0.0.1:8000/md-word-workspace.html`
-
-本地 HTTP 服务只是静态文件服务，不会接收或处理文档内容。
-
-## 基本使用
-
-1. 点击 `Open` 打开 Markdown 文件，或使用下拉菜单打开文件夹、URL、新建文档。
-2. 点击 `Edit` 在阅读界面直接编辑；再次点击退出编辑。
-3. 点击查找图标，或按 `Ctrl/Command + F` 查找；按 `Ctrl/Command + H` 展开替换。
-4. 点击 `Save` 保存 Markdown。
-5. 在 HTML Workspace 中点击 `Export` 导出独立 HTML。
-6. 在 Word Workspace 中点击 `Export Word` 导出 `.docx`。
-
-在支持 File System Access API 的 Chromium 浏览器中，通过文件选择器打开的文件可以原地保存。其他浏览器会退化为下载保存。
-
-## 常用快捷键
-
-| 操作 | Windows/Linux | macOS |
-| --- | --- | --- |
-| 打开文件 | `Ctrl + O` | `Command + O` |
-| 打开文件夹 | `Ctrl + Shift + O` | `Command + Shift + O` |
-| 保存 | `Ctrl + S` | `Command + S` |
-| 切换阅读编辑 | `Ctrl + E` | `Command + E` |
-| 切换完整源码 | `Ctrl + Shift + E` | `Command + Shift + E` |
-| 查找 | `Ctrl + F` | `Command + F` |
-| 查找替换 | `Ctrl + H` | `Command + H` |
-| 下一处匹配 | `F3` 或 `Ctrl + G` | `F3` 或 `Command + G` |
-| 撤销/重做 | `Ctrl + Z` / `Ctrl + Shift + Z` | `Command + Z` / `Command + Shift + Z` |
-| 显示改动清单 | `Ctrl + Shift + D` | `Command + Shift + D` |
-| 上一处/下一处改动 | `Alt + Up/Down` | `Option + Up/Down` |
-
-## 分享服务
-
-开源文件不包含任何上传地址、Bucket、账号或 Token。进入 `Aa -> Share service` 手工配置，或导入 `examples/share-service.example.json` 后修改。
-
-完整字段和服务端响应要求见 [分享服务配置说明](docs/share-service-config.md)。
-
-配置保存在浏览器 `localStorage`。请求头中的 Token 也是明文保存，只应在可信设备上使用。导出的 HTML 和 Word 文档不会携带分享服务配置。
-
-## 数据与网络边界
-
-| 操作 | 是否发起网络请求 |
+| 你想要什么 | 下载这个版本 |
 | --- | --- |
-| 打开、编辑、保存本地 Markdown | 否 |
-| 页面首次加载 | 是，从公共 CDN 加载字体和渲染依赖 |
-| 从 URL 加载 Markdown | 是，请求目标 URL |
-| 开启 CORS proxy 后加载 URL | 是，请求 `corsproxy.io` |
-| 加载远程图片 | 是，请求图片地址 |
-| 导出本地 HTML、PDF 或 Word | 不上传文档；远程图片可能在导出时被读取 |
-| 点击 Share | 是，上传到用户配置的服务 |
+| 修改完继续在 Word 里编辑 | [下载 Word 版](https://github.com/wasteball/markdown-workspace/raw/refs/heads/main/md-word-workspace.html) |
+| 修改完生成网页、PDF，或复制带排版的内容 | [下载网页交付版](https://github.com/wasteball/markdown-workspace/raw/refs/heads/main/md-html-workspace.html) |
 
-如果需要完全离线运行，需要将 CDN 依赖本地化并修改 HTML 引用；当前发布包未内置第三方库。
+下载后只需要三步：
 
-## 浏览器支持
+1. 用 Chrome 或 Edge 双击打开刚下载的 HTML 文件。
+2. 点击 `Open` 选择你的 `.md` 文档，也可以把文档直接拖进去。
+3. 点击 `Edit` 开始修改，完成后保存或导出。
 
-- 推荐最新版 Chrome、Edge 或其他 Chromium 浏览器。
-- Firefox 和 Safari 可以完成大部分阅读、编辑与导出流程，但原地文件保存等能力可能退化。
-- Word 导出依赖现代浏览器的 Blob、Canvas、Fetch 和 Promise 支持。
+就是这样。没有安装过程，也没有需要先学会的操作规则。
 
-## 已知限制
+## 不会用？打开手册
 
-- 复杂 MDX/JSX 不会作为 React 组件执行，只会按 Markdown/HTML 能力处理。
-- Word 导出关注可编辑结构，不保证与浏览器 CSS 像素级一致。
-- 跨域图片缺少 CORS 权限时，Word 中会使用文字占位。
-- `file://` 下不同 HTML 的浏览器存储可能互相隔离；可使用 `Copy JSON` 和 `Import` 迁移分享配置。
-- 页面运行依赖公共 CDN，网络不可用时部分增强渲染和 Word 导出会不可用。
+[下载 Markdown Workspace 图文手册](https://github.com/wasteball/markdown-workspace/raw/refs/heads/main/markdown-workspace-%E6%89%8B%E5%86%8C.html)
 
-## 仓库结构
+手册也是一个 HTML 文件，下载后双击即可打开。里面有完整的操作演示：怎样打开 AI 生成的长报告、怎样直接修改、怎样检查自己改过什么，以及怎样保存和导出。
 
-```text
-.
-├── .github/                  # Issue 与 Pull Request 模板
-├── md-html-workspace.html
-├── md-word-workspace.html
-├── README.md
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── SECURITY.md
-├── THIRD_PARTY_NOTICES.md
-├── LICENSE
-├── SHA256SUMS
-├── docs/
-│   ├── RELEASE_CHECKLIST.md
-│   └── share-service-config.md
-└── examples/
-    ├── feature-demo.md
-    └── share-service.example.json
-```
+## 它让 Markdown 变得像普通文档
 
-## 参与贡献
+- **直接阅读。** 标题、表格、图片、流程图和公式都会自动排好，不再面对一屏符号。
+- **直接修改。** 点击正文就能改字、加粗、加链接；表格也能直接增删行列。
+- **放心保存。** 保存前可以看到自己改了哪些地方，改错的内容可以单独撤回。
+- **方便交付。** 可以生成 Word、网页或 PDF，发给完全不用 Markdown 的同事、客户和领导。
+- **一次打开一批文件。** 一个项目里的多份文档可以放在一起阅读和修改，不必开很多窗口。
+- **默认留在本机。** 文档不会因为打开或编辑而自动上传；只有你主动点击分享时，内容才会发送出去。
 
-提交修改前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 中的方式报告。
+## 这个工具适合谁
 
-## 第三方依赖
+- 经常收到 AI 生成的报告、方案、教程和知识库文档的人。
+- 只想改几个字、调整一张表，不想为此学习 Markdown 的人。
+- 需要把 Markdown 交付成 Word、网页或 PDF 的人。
+- 希望文档保留在自己电脑上，不想上传到在线编辑器的人。
 
-运行时依赖及许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+## 它本身也是一次 AI 实践
 
-两个可执行 HTML 的发布哈希见 `SHA256SUMS`。
+Markdown Workspace 的代码由 AI 完成实现，产品方向来自真实的普通用户场景，并在实际文档工作中不断修改和验证。
 
-## 许可证
+它想证明一件事：AI 不只是生成一段代码，也可以做出一个普通人拿来就能用、能够解决真实问题的完整工具。
 
-本项目采用 [MIT License](LICENSE)。你可以使用、复制、修改、合并、发布、分发、再许可或销售软件副本，但必须保留原版权及许可声明。
+## 使用前知道
+
+- 推荐使用 Chrome 或 Edge。
+- 打开工具及显示流程图、公式等内容时需要联网。
+- 本地文档默认不会上传。
+- 如果浏览器无法直接写回原文件，保存时会下载一份修改后的新文件，原文件不会丢失。
+
+## 开源许可
+
+本项目采用 [MIT License](LICENSE)。

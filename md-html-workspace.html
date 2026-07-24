@@ -1132,6 +1132,38 @@ body.empty #preview{display:none;}
     while ((m = re.exec(src))) out.push(m[0]);
     return out.join('\n');
   }
+  function detailsDepth(raw) {
+    var depth = 0;
+    String(raw || '').replace(/<!--[\s\S]*?-->/g, '').replace(/<\/?details\b[^>]*>/gi, function (tag) {
+      depth += /^<\s*\//.test(tag) ? -1 : 1;
+      return tag;
+    });
+    return depth;
+  }
+  function mergeDetailsBlocks(src, blocks) {
+    var out = [], group = null, depth = 0;
+    blocks.forEach(function (b) {
+      var delta = b.type === 'html' ? detailsDepth(b.raw) : 0;
+      if (!group) {
+        if (delta <= 0) { out.push(b); return; }
+        group = { start: b.start, end: b.end, raw: '', type: 'html' };
+        depth = delta;
+      } else {
+        group.end = b.end;
+        depth += delta;
+      }
+      if (depth <= 0) {
+        group.raw = src.slice(group.start, group.end);
+        out.push(group); group = null; depth = 0;
+      }
+    });
+    if (group) {
+      group.end = src.length;
+      group.raw = src.slice(group.start);
+      out.push(group);
+    }
+    return out;
+  }
   function lexBlocks(src) {
     var toks;
     try { toks = marked.lexer(src); }
@@ -1147,7 +1179,9 @@ body.empty #preview{display:none;}
       blocks.push({ start: start, end: pos, raw: raw, type: t.type });
       openTail = true;
     });
-    return blocks;
+    // A details container can span several Markdown tokens. Keep the full
+    // container in one .blk so its children stay inside the native element.
+    return mergeDetailsBlocks(src, blocks);
   }
   function blockSource(b) { return (b.raw || '').replace(/\s+$/, ''); }
   function blkEl(i) { return preview.querySelector('.blk[data-blk="' + i + '"]'); }
@@ -3574,7 +3608,7 @@ body.empty #preview{display:none;}
     /* 点哪儿改哪儿 —— 光标落在你点的那个字上，而不是块尾 */
     preview.addEventListener('click', function (e) {
       if (document.body.dataset.edit !== 'on') return;
-      if (e.target.closest('a,button,input,img,.mm-viewport,.blk-editor,.src-box,.blk-add-end,.toc-inline')) return;
+      if (e.target.closest('a,button,input,summary,img,.mm-viewport,.blk-editor,.src-box,.blk-add-end,.toc-inline')) return;
       var td = e.target.closest('td,th');
       if (td && preview.contains(td)) { startCellEdit(td); return; }
       var el = e.target.closest('.blk'); if (!el) return;
